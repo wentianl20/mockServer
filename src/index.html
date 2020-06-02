@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<head><title>websoket</title></head>
+<style>
+    input{
+        outline-style: none ;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 13px 14px;
+        width: 620px;
+        font-size: 14px;
+        font-weight: 700;
+        font-family: "Microsoft soft";
+        margin: 20px;
+    }
+    input:focus{
+        border-color: #66afe9;
+        outline: 0;
+        -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6);
+        box-shadow: inset 0 1px 1px rgba(0,0,0,.075),0 0 8px rgba(102,175,233,.6)
+    }
+    span{
+        font-size: 24px;
+
+        font-weight: 700;
+        font-family: "Microsoft soft";
+    }
+    button {
+        width: 120px;
+        padding:8px;
+        margin: 10px;
+        background-color: #428bca;
+        border-color: #357ebd;
+        color: #fff;
+        -moz-border-radius: 10px;
+        -webkit-border-radius: 10px;
+        border-radius: 10px; /* future proofing */
+        -khtml-border-radius: 10px; /* for old Konqueror browsers */
+        text-align: center;
+        vertical-align: middle;
+        border: 1px solid transparent;
+        font-weight: 900;
+        font-size:100%
+    }
+
+</style>
+<body>
+<span>username</span>
+<input type="text" id='username' placeholder="请输入名称">
+<input type="text" id='connectionId' placeholder="请输入connectionId">
+<button id='confirm'>确认</button>
+<br>
+<div id='talk' style='margin:20px;width:600px;height:150px;border:1px solid black;'>
+</div>
+<br>
+<input type="text" id='message'><br>
+<button id='sendBtn'>发送</button>
+<button id='closeWs'>退出聊天室</button>
+<div id='users' style="position: fixed;right:50px;top:20px;width:200px;height:200px;background: #00CCFF;">
+</div>
+</body>
+<script>
+    function getNumber () {
+        return ''+Math.floor(Math.random()*1000)+Math.floor(Math.random()*1000)
+    }
+    let flag = false
+    let username = ''
+    let connectionId = null
+    let ws = new WebSocket("ws://localhost:8181");
+    let userId = 'userid'+getNumber()
+    let partnerUsers = []
+    // 打开连接
+    ws.onopen = function (e) {
+        console.log('Connection to server opened', userId);
+    }
+
+    // 保存聊天室的用户信息
+    let users = []
+
+    // 接受聊天信息
+    ws.onmessage= function(message) {
+        console.log('服务器返回的信息',message)
+        // let state = message.data.slice(0,1)
+        // let data = JSON.parse(message.data.slice(1))
+        let data = JSON.parse(message.data)
+        let state = data.state
+        if(state==1||state==4) {
+            updateUserName(data)
+        }else if (state == 3) {
+            updateTalkMessage(data)
+        }
+    }
+
+    // 发送聊天信息
+    document.querySelector('#sendBtn').addEventListener('click',() => {// 发送
+        if(!flag){
+            alert('请注册用户')
+            return
+        }
+        if(document.querySelector('#message').value!=''&&flag) {
+            // 拼接数据
+            let mess = {
+                id:userId,
+                name:username,
+                connectionId: connectionId,
+                state:3,
+                time:new Date().toLocaleDateString(),
+                value:document.querySelector('#message').value
+            }
+            ws.send(JSON.stringify(mess))
+            document.querySelector('#message').value=''
+        }
+    })
+    // 添加用户
+    document.querySelector('#confirm').addEventListener('click',()=>{
+        username = document.querySelector('#username').value
+        connectionId = document.querySelector('#connectionId').value
+        if(flag) return
+        // 修改信息，并且发送信息到服务器
+        let mess = {
+            id:userId,
+            name:username,
+            connectionId: connectionId,
+            state:1
+        }
+        flag = true
+        ws.send(JSON.stringify(mess))
+    })
+    // 关闭连接事件
+    document.querySelector('#closeWs').addEventListener('click',()=>{
+        // 取消用户信息
+        // 修改信息，并且发送信息到服务器
+        let mess = {
+            id:userId,
+            connectionId: connectionId,
+            state:4
+        }
+        alert('关闭ws连接')
+        ws.close(1000,JSON.stringify(mess));
+
+    })
+
+
+    // 更新用户表
+    function updateUserName(data) {
+        let parent = document.querySelector('#users')
+        parent.innerHTML =''
+        console.log("update ", data)
+        const index = partnerUsers.findIndex(u => u.id === data.id)
+        if(data.state === 1) {
+            if(index > -1) {
+                throw new Error('This id already connected, please check again or change another one')
+            }
+            partnerUsers.push({id:data.id, name: data.name})
+        } else {
+            if(index > -1) {
+                partnerUsers.splice(index, 1)
+            }
+        }
+        console.log('new partnerUsers ', partnerUsers)
+    }
+    // 更新聊天框信息
+    function  updateTalkMessage(data) {
+        console.log("new message", data)
+        let parent = document.querySelector('#talk')
+        let list = document.createElement('li')
+        list.innerHTML = `${data.name}  说: ${data.value}  -----${data.time}`
+        parent.appendChild(list)
+    }
+
+    window.addEventListener('beforeunload', e => {
+        let mess = {
+            id:userId,
+            connectionId: connectionId,
+            state:4
+        }
+        alert('关闭ws连接')
+        ws.close(1000,JSON.stringify(mess));
+    })
+</script>
+</html>
