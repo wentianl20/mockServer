@@ -106,7 +106,29 @@
                 connectionId: connectionId,
                 state:3,
                 time:new Date().toLocaleDateString(),
-                value:document.querySelector('#message').value
+                value:document.querySelector('#message').value,
+                data: {
+                    img: 'https://123',
+                    trackingData: {
+                        pageId: 'pageId',
+                        events: [
+                            {
+                                id: 'eventId_01',
+                                toWindowTop: '540px',
+                                toWindowLeft: '660px',
+                                width: '100px',
+                                height: '100px'
+                            },
+                            {
+                                id: 'eventId_02',
+                                toWindowTop: '140px',
+                                toWindowLeft: '1060px',
+                                width: '100px',
+                                height: '100px'
+                            }
+                        ]
+                    }
+                }
             }
             ws.send(JSON.stringify(mess))
             document.querySelector('#message').value=''
@@ -125,7 +147,14 @@
             state:1
         }
         flag = true
-        ws.send(JSON.stringify(mess))
+        if(ws.readyState === 3) {
+            ws = new WebSocket("ws://localhost:8181");
+            setTimeout(() => {
+                ws.send(JSON.stringify(mess))
+            }, 500)
+        } else {
+            ws.send(JSON.stringify(mess))
+        }
     })
     // 关闭连接事件
     document.querySelector('#closeWs').addEventListener('click',()=>{
@@ -138,7 +167,7 @@
         }
         alert('关闭ws连接')
         ws.close(1000,JSON.stringify(mess));
-
+        flag = false
     })
 
 

@@ -4,8 +4,8 @@ const path = require('path')
 const fs = require('fs')
 app.use(express.static(path.join(__dirname, 'public')))
 //监听端口
-app.listen(8081,()=>{
-    console.log('HTTP Server is running on: http://localhost:%s', 8081)
+app.listen(8082,()=>{
+    console.log('HTTP Server is running on: http://localhost:%s', 8082)
 })
 app.get('*',(req,res)=>{
     let urlPath = req.path

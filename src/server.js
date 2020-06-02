@@ -25,7 +25,6 @@ wss.on('connection', function (ws) {
             users.push({
                 id:message.id, // sessionId
                 connectionId: message.connectionId, // roomId
-                data:message.data
             })
             webSockets[message.id] = ws
 
